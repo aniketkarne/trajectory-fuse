@@ -197,7 +197,10 @@ class TestWindowEvictionEdgeCases:
         assert ei.value.detection.kind == DetectionKind.N_CYCLE
 
     def test_window_eviction_with_progress_marks(self):
-        # Progress marks must also slide forward when the window trims.
+        # Progress marks must also slide forward when the window trims, and
+        # once they slide entirely out of the window the stagnation detector
+        # must use a synthesised anchor so that pre-mark failures never leak
+        # back into the post-mark region as more actions are observed.
         fuse = AgentFuse(
             FuseConfig(
                 window=4,
@@ -208,17 +211,30 @@ class TestWindowEvictionEdgeCases:
         fuse.observe(_act("a", 1, "timeout one", False))
         fuse.observe(_act("a", 1, "timeout two", False))
         fuse.mark_progress(ProgressSignal(token="phase"))
+        # Mark is recorded as the position immediately after the last action
+        # observed at the time of the call — here, position 2 (index of the
+        # next slot to fill).
+        assert fuse._progress_marks == [2]
         # Fill window with new actions that would otherwise stagnate.
         fuse.observe(_act("a", 1, "timeout three", False))
         fuse.observe(_act("a", 1, "timeout four", False))
-        # Mark is at history position 2; window is now trimmed. After 4 more
-        # observes, the mark is still inside the window. The mark stays
-        # valid until enough actions have been observed *after* it to evict
-        # everything before it.
-        # Force eviction past the mark:
-        for _ in range(8):
+        # Mark is at history position 2; window is now full at 4 actions,
+        # but no trim has fired yet because len never exceeded the window.
+        assert fuse._progress_marks == [2]
+        assert len(fuse.history) == 4
+        # Force eviction past the mark: each observe trims one slot and
+        # the mark slides forward; once the slide would make the mark
+        # negative it is replaced by a synthesised sentinel.
+        for expected_mark in ([1], [0], [-1], [-1], [-1], [-1], [-1], [-1]):
             fuse.observe(_act("a", 1, "timeout again", False))
-        # Now stagnation should still be relevant only to post-mark actions.
+            assert fuse._progress_marks == expected_mark, (
+                f"expected progress mark {expected_mark}, got {fuse._progress_marks}"
+            )
+        # Stagnation must NOT fire: the cross-message token similarity
+        # across the post-mark actions is below the 0.5 threshold, and the
+        # synthesised sentinel prevents pre-mark failures from inflating
+        # the post-mark count.
+        assert not fuse._progress_marks or all(m < 0 for m in fuse._progress_marks)
 
     def test_window_eviction_does_not_lose_pending_stagnation_too_soon(self):
         # Two identical failures, then 30 unrelated actions. With window=8,
@@ -488,7 +504,7 @@ class TestLoaderEdgeCases:
             TrajectoryRecord(3, "r", "a", canonical_hash({"q": "x"}),
                              '{"q":"x"}', "ok", True, False),
         ]
-        guard = AgentFuse(FuseConfig(cycle=CycleConfig(direct_repeat_threshold=2)))
+        guard = AgentFuse(FuseConfig(cycle=CycleConfig(direct_repeat_threshold=3)))
         replayed = replay_against_guard(records, guard)
         # Stops on the third action that triggered detection.
         assert len(replayed) == 3

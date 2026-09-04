@@ -240,8 +240,9 @@ class AgentFuse:
         recorded before the mark in its window. Direct-repeat and cycle
         detection still consider the full window.
         """
-        # Position is in *unfiltered* history terms.
-        self._progress_marks.append(len(self._actions))
+        # Position is in *unfiltered* history terms. A new real mark
+        # supersedes any synthesised anchor.
+        self._progress_marks = [len(self._actions)]
         if self._store is not None:
             self._sequence += 1
             self._store.append(
@@ -274,10 +275,27 @@ class AgentFuse:
         self._actions.append(action)
         # Trim window.
         if len(self._actions) > self.config.window:
+            had_marks_before_trim = bool(self._progress_marks)
             drop = len(self._actions) - self.config.window
             self._actions = self._actions[drop:]
-            # Adjust progress marks accordingly.
-            self._progress_marks = [m - drop for m in self._progress_marks if m - drop >= 0]
+            # Adjust progress marks accordingly. Synthesised anchors are
+            # sticky — they do not shift with subsequent trims — so the
+            # buffered actions before the synth cannot leak back into the
+            # post-mark region as new failures are observed.
+            new_marks: List[int] = []
+            for m in self._progress_marks:
+                if m < 0:
+                    continue  # sentinel (synthesised anchor)
+                shifted = m - drop
+                if shifted >= 0:
+                    new_marks.append(shifted)
+            self._progress_marks = new_marks
+            # When a mark slides out of the window entirely, record a
+            # "synthesised" anchor that the stagnation detector treats as
+            # "no post-mark actions yet". Use a negative sentinel so it is
+            # distinguishable from real marks and survives future trims.
+            if had_marks_before_trim and not self._progress_marks:
+                self._progress_marks = [-1]
 
         # Persist.
         if self._store is not None:
@@ -316,7 +334,7 @@ class AgentFuse:
                 hint = None
 
         msg = detection.message
-        if hint:
+        if hint is not None:
             msg = f"{msg} [hint: {hint}]"
 
         raise DeadlockDetected(

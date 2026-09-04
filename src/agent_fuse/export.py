@@ -244,7 +244,7 @@ def render_mermaid(records: Iterable[TrajectoryRecord]) -> str:
 
     for idx, rec in enumerate(rec_list):
         node_id = f"n{idx}"
-        label = _mermaid_safe(f"{idx + 1}. {rec.tool}")
+        label = _mermaid_safe(f"{idx + 1}. {_short(rec.tool, 30)}")
         if rec.result_repr:
             label += "<br/>" + _mermaid_safe(_short(rec.result_repr, 30))
         if rec.is_progress:

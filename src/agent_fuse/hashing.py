@@ -31,7 +31,7 @@ def _normalise(value: Any) -> Any:
     if value is None or isinstance(value, (bool, int, float, str)):
         return value
     if isinstance(value, dict):
-        return {str(k): _normalise(v) for k, v in value.items()}
+        return {str(k): _normalise(v) for k, v in sorted(value.items(), key=lambda kv: repr(kv[0]))}
     if isinstance(value, (list, tuple)):
         return [_normalise(v) for v in value]
     if isinstance(value, (set, frozenset)):

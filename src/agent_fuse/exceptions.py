@@ -39,6 +39,6 @@ class DeadlockDetected(RuntimeError):
 
     def __repr__(self) -> str:  # pragma: no cover - debug aid
         return (
-            f"DeadlockDetected(kind={self.detection.kind.value!r}, "
+            f"DeadlockDetected(kind={self.detection.kind.name!r}, "
             f"message={str(self)!r}, hint={self.steering_hint!r})"
         )
