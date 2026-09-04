@@ -1,4 +1,4 @@
-"""Exceptions raised by agent-fuse."""
+"""Exceptions raised by trajectory-fuse."""
 
 from __future__ import annotations
 

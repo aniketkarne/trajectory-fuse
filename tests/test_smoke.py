@@ -1,7 +1,7 @@
 """Smoke tests: package imports & module surface."""
 
-import agent_fuse
-from agent_fuse import (
+import trajectory_fuse
+from trajectory_fuse import (
     Action,
     AgentFuse,
     BudgetExceeded,
@@ -23,8 +23,8 @@ from agent_fuse import (
 
 
 def test_version_present():
-    assert hasattr(agent_fuse, "__version__")
-    assert isinstance(agent_fuse.__version__, str)
+    assert hasattr(trajectory_fuse, "__version__")
+    assert isinstance(trajectory_fuse.__version__, str)
 
 
 def test_all_symbols_importable():
@@ -47,7 +47,7 @@ def test_all_symbols_importable():
         "canonical_hash",
         "fuse_namespace",
     ):
-        assert hasattr(agent_fuse, name)
+        assert hasattr(trajectory_fuse, name)
 
 
 def test_detection_kind_values():
@@ -65,16 +65,16 @@ def test_deadlock_detected_attach_attrs():
 
 
 def test_module_submodules_present():
-    import agent_fuse.export
-    import agent_fuse.guard
-    import agent_fuse.hashing
-    import agent_fuse.loader
-    import agent_fuse.stats
-    import agent_fuse.store
+    import trajectory_fuse.export
+    import trajectory_fuse.guard
+    import trajectory_fuse.hashing
+    import trajectory_fuse.loader
+    import trajectory_fuse.stats
+    import trajectory_fuse.store
 
-    assert hasattr(agent_fuse.export, "render_html")
-    assert hasattr(agent_fuse.guard, "AgentFuse")
-    assert hasattr(agent_fuse.hashing, "canonical_hash")
-    assert hasattr(agent_fuse.loader, "load_jsonl")
-    assert hasattr(agent_fuse.stats, "FuseStats")
-    assert hasattr(agent_fuse.store, "TrajectoryStore")
+    assert hasattr(trajectory_fuse.export, "render_html")
+    assert hasattr(trajectory_fuse.guard, "AgentFuse")
+    assert hasattr(trajectory_fuse.hashing, "canonical_hash")
+    assert hasattr(trajectory_fuse.loader, "load_jsonl")
+    assert hasattr(trajectory_fuse.stats, "FuseStats")
+    assert hasattr(trajectory_fuse.store, "TrajectoryStore")

@@ -924,7 +924,7 @@ AgentFuse.tool = _wrap_method  # type: ignore[attr-defined]
 
 # Also expose a functional shorthand.
 class _FuseNamespace:
-    """Module-level namespace so users can do ``agent_fuse.wrap(fn)``."""
+    """Module-level namespace so users can do ``trajectory_fuse.wrap(fn)``."""
 
     def __init__(self, fuse: "AgentFuse"):
         self._fuse = fuse
@@ -941,7 +941,7 @@ def fuse_namespace(fuse: "AgentFuse") -> _FuseNamespace:
 
     Useful when you want a single import::
 
-        from agent_fuse import AgentFuse, fuse_namespace
+        from trajectory_fuse import AgentFuse, fuse_namespace
         fuse = AgentFuse()
         fuse_tool = fuse_namespace(fuse)
 

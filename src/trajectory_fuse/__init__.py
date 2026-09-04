@@ -1,4 +1,4 @@
-"""agent-fuse: in-process runtime guard for agent tool-call loops.
+"""trajectory-fuse: in-process runtime guard for agent tool-call loops.
 
 Detects deadlocks, semantic stagnation, and repeating cycles in agent
 tool-call trajectories. Zero external dependencies; Python 3.9+.

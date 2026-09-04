@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from agent_fuse import (
+from trajectory_fuse import (
     Action,
     AgentFuse,
     CycleConfig,
@@ -14,8 +14,8 @@ from agent_fuse import (
     ProgressSignal,
     StagnationConfig,
 )
-from agent_fuse.guard import canonical_hash  # re-export via guard module not exposed; use public
-from agent_fuse.hashing import canonical_hash
+from trajectory_fuse.guard import canonical_hash  # re-export via guard module not exposed; use public
+from trajectory_fuse.hashing import canonical_hash
 
 
 def _act(tool, args, result=None, success=None, **meta):
@@ -332,7 +332,7 @@ class TestResetAndLifecycle:
         # No exception — reset cleared the duplicate.
 
     def test_context_manager_closes_store(self):
-        from agent_fuse.store import TrajectoryStore
+        from trajectory_fuse.store import TrajectoryStore
 
         store = TrajectoryStore(":memory:")
         cfg = FuseConfig(store_factory=lambda: store, run_id="ctx")

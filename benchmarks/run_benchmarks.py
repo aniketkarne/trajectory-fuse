@@ -1,4 +1,4 @@
-"""Reproducible benchmark suite for agent-fuse.
+"""Reproducible benchmark suite for trajectory-fuse.
 
 Measures the steady-state overhead of the runtime guard so that we can
 detect regressions in detection logic and persistence. The harness is
@@ -63,7 +63,7 @@ from typing import Callable, Iterable, List, Optional, Tuple
 _REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO / "src"))
 
-from agent_fuse import (  # noqa: E402
+from trajectory_fuse import (  # noqa: E402
     Action,
     AgentFuse,
     CycleConfig,
@@ -71,7 +71,7 @@ from agent_fuse import (  # noqa: E402
     StagnationConfig,
     TrajectoryStore,
 )
-from agent_fuse.hashing import canonical_hash  # noqa: E402
+from trajectory_fuse.hashing import canonical_hash  # noqa: E402
 
 
 # -----------------------------------------------------------------------
@@ -125,7 +125,7 @@ def bench_observe_normal(rounds: int = 2000) -> int:
 
 def bench_observe_with_store(rounds: int = 500) -> int:
     """observe() + SQLite append per call (in-memory store)."""
-    tmpdir = tempfile.mkdtemp(prefix="agent-fuse-bench-")
+    tmpdir = tempfile.mkdtemp(prefix="trajectory-fuse-bench-")
     try:
         path = os.path.join(tmpdir, "traj.db")
         store = TrajectoryStore(path)
@@ -225,9 +225,9 @@ def bench_canonical_hash(rounds: int = 50000) -> int:
 
 def bench_sqlite_persist(rounds: int = 2000) -> int:
     """Direct TrajectoryStore.append() (no guard)."""
-    from agent_fuse.types import TrajectoryRecord
+    from trajectory_fuse.types import TrajectoryRecord
 
-    tmpdir = tempfile.mkdtemp(prefix="agent-fuse-bench-")
+    tmpdir = tempfile.mkdtemp(prefix="trajectory-fuse-bench-")
     try:
         path = os.path.join(tmpdir, "traj.db")
         store = TrajectoryStore(path)
@@ -333,7 +333,7 @@ def check_baselines(results: dict, baselines: dict) -> List[str]:
 
 
 def main(argv: Optional[Iterable[str]] = None) -> int:
-    p = argparse.ArgumentParser(description="agent-fuse benchmark harness")
+    p = argparse.ArgumentParser(description="trajectory-fuse benchmark harness")
     p.add_argument("--samples", type=int, default=3,
                    help="Number of timing repetitions per scenario (default: 3)")
     p.add_argument("--strict", action="store_true",

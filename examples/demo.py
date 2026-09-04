@@ -1,4 +1,4 @@
-"""Minimal end-to-end demo of agent-fuse.
+"""Minimal end-to-end demo of trajectory-fuse.
 
 Run::
 
@@ -14,15 +14,15 @@ import json
 import os
 from pathlib import Path
 
-from agent_fuse import (
+from trajectory_fuse import (
     Action,
     AgentFuse,
     DeadlockDetected,
     DetectionKind,
     FuseConfig,
 )
-from agent_fuse.export import render_html, render_mermaid, render_svg
-from agent_fuse.loader import load_jsonl
+from trajectory_fuse.export import render_html, render_mermaid, render_svg
+from trajectory_fuse.loader import load_jsonl
 
 
 def synthetic_trajectory() -> list:

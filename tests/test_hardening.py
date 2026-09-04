@@ -17,7 +17,7 @@ import time
 
 import pytest
 
-from agent_fuse import (
+from trajectory_fuse import (
     Action,
     AgentFuse,
     BudgetExceeded,
@@ -107,7 +107,7 @@ def test_budget_max_runtime_seconds_trips_after_threshold(monkeypatch):
     base = fuse._start_time
     fake_now = base + 1.0
     monkeypatch.setattr(
-        "agent_fuse.guard.time.monotonic", lambda: fake_now
+        "trajectory_fuse.guard.time.monotonic", lambda: fake_now
     )
     with pytest.raises(BudgetExceeded) as ei:
         fuse.observe(_ok("a", args=1))
@@ -720,7 +720,7 @@ def test_stats_recorded_consistently_after_reset():
 
 
 def test_module_reexports_match_dunder_all():
-    import agent_fuse
+    import trajectory_fuse
 
-    for name in agent_fuse.__all__:
-        assert hasattr(agent_fuse, name), name
+    for name in trajectory_fuse.__all__:
+        assert hasattr(trajectory_fuse, name), name

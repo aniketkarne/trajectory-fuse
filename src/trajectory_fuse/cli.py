@@ -1,13 +1,13 @@
-"""Command-line interface for agent-fuse.
+"""Command-line interface for trajectory-fuse.
 
 Commands::
 
-    agent-fuse analyse INPUT.jsonl [--db PATH] [--run-id ID]
-    agent-fuse export  INPUT.jsonl --out OUT.{html,svg,md} [--run-id ID]
-    agent-fuse replay  INPUT.jsonl [--window N] [--direct-repeat N] ...
-    agent-fuse stats   INPUT.jsonl
+    trajectory-fuse analyse INPUT.jsonl [--db PATH] [--run-id ID]
+    trajectory-fuse export  INPUT.jsonl --out OUT.{html,svg,md} [--run-id ID]
+    trajectory-fuse replay  INPUT.jsonl [--window N] [--direct-repeat N] ...
+    trajectory-fuse stats   INPUT.jsonl
 
-Use ``agent-fuse --help`` for the full flag list.
+Use ``trajectory-fuse --help`` for the full flag list.
 """
 
 from __future__ import annotations
@@ -30,10 +30,10 @@ from .types import Action
 
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="agent-fuse",
+        prog="trajectory-fuse",
         description="In-process runtime guard for agent tool-call loops.",
     )
-    p.add_argument("--version", action="version", version=f"agent-fuse {__version__}")
+    p.add_argument("--version", action="version", version=f"trajectory-fuse {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
 
     # ---- analyse ---------------------------------------------------------
@@ -139,7 +139,7 @@ def _analyse(args) -> int:
             success=rec.success,
         )
         if rec.is_progress:
-            fuse.mark_progress(__import__("agent_fuse").types.ProgressSignal(token=rec.args_repr or ""))
+            fuse.mark_progress(__import__("trajectory_fuse").types.ProgressSignal(token=rec.args_repr or ""))
             continue
         try:
             fuse.observe(action)
@@ -236,7 +236,7 @@ def _replay(args) -> int:
     for rec in iter_jsonl(args.input, default_run_id="cli"):
         seen += 1
         if rec.is_progress:
-            fuse.mark_progress(__import__("agent_fuse").types.ProgressSignal(token=rec.args_repr or ""))
+            fuse.mark_progress(__import__("trajectory_fuse").types.ProgressSignal(token=rec.args_repr or ""))
             if not args.quiet:
                 print(f"[{seen}] progress: {rec.args_repr}")
             continue
@@ -330,11 +330,11 @@ def _demo(args) -> int:
     if args.path:
         candidates.append(args.path)
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
-    # Wheel data layout: <site-packages>/agent_fuse/share/examples/...
+    # Wheel data layout: <site-packages>/trajectory_fuse/share/examples/...
     candidates.append(
         os.path.join(pkg_dir, "share", "examples", "demo_circuit_breaker.py")
     )
-    # Source layout: <repo>/src/agent_fuse/cli.py -> <repo>/examples/...
+    # Source layout: <repo>/src/trajectory_fuse/cli.py -> <repo>/examples/...
     candidates.append(
         os.path.join(os.path.dirname(pkg_dir), "..", "examples", "demo_circuit_breaker.py")
     )
@@ -353,7 +353,7 @@ def _demo(args) -> int:
         )
         return 2
 
-    print(f"[agent-fuse] running demo: {chosen}")
+    print(f"[trajectory-fuse] running demo: {chosen}")
     try:
         runpy.run_path(chosen, run_name="__main__")
     except SystemExit as exc:

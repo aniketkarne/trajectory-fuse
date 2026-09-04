@@ -1,6 +1,6 @@
 """Tests for canonical hashing."""
 
-from agent_fuse.hashing import canonical_hash
+from trajectory_fuse.hashing import canonical_hash
 
 
 class TestCanonicalHash:

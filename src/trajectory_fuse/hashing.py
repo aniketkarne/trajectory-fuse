@@ -1,7 +1,7 @@
 """Canonical JSON hashing for tool-call arguments.
 
 A robust, deterministic hash is the spine of every detection mode in
-agent-fuse. We require:
+trajectory-fuse. We require:
 
 * stable across Python runs and platforms,
 * insensitive to dict key order,

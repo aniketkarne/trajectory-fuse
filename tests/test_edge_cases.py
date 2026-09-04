@@ -1,4 +1,4 @@
-"""Comprehensive edge-case tests for agent-fuse.
+"""Comprehensive edge-case tests for trajectory-fuse.
 
 These tests complement the focused tests in ``test_guard.py`` and
 ``test_store.py`` with the messy cases that real callers hit:
@@ -27,7 +27,7 @@ from pathlib import Path
 
 import pytest
 
-from agent_fuse import (
+from trajectory_fuse import (
     Action,
     AgentFuse,
     CycleConfig,
@@ -40,10 +40,10 @@ from agent_fuse import (
     TrajectoryStore,
     canonical_hash,
 )
-from agent_fuse.export import render_html, render_mermaid, render_svg
-from agent_fuse.guard import _tokenise, _jaccard  # internals — test in isolation
-from agent_fuse.hashing import _normalise, canonical_payload
-from agent_fuse.loader import (
+from trajectory_fuse.export import render_html, render_mermaid, render_svg
+from trajectory_fuse.guard import _tokenise, _jaccard  # internals — test in isolation
+from trajectory_fuse.hashing import _normalise, canonical_payload
+from trajectory_fuse.loader import (
     iter_jsonl,
     load_jsonl,
     normalise_row,
@@ -128,7 +128,7 @@ class TestCanonicalisation:
             [sys.executable, "-c",
              "import sys, json; "
                  "sys.path.insert(0, 'src'); "
-                 "from agent_fuse.hashing import canonical_hash; "
+                 "from trajectory_fuse.hashing import canonical_hash; "
                  "print(canonical_hash(json.loads(sys.argv[1])))",
                  json.dumps(payload)],
             capture_output=True, text=True, check=True,
@@ -340,7 +340,7 @@ class TestExceptionBehaviour:
 
     def test_repr_is_safe(self):
         det = DeadlockDetected(
-            "x", detection=__import__("agent_fuse").types.Detection(
+            "x", detection=__import__("trajectory_fuse").types.Detection(
                 kind=DetectionKind.DIRECT_REPEAT, message="x", cycle=["t"]
             )
         )
@@ -513,7 +513,7 @@ class TestLoaderEdgeCases:
 class TestCLIErrors:
     def _invoke(self, args, cwd=None):
         return subprocess.run(
-            [sys.executable, "-m", "agent_fuse.cli", *args],
+            [sys.executable, "-m", "trajectory_fuse.cli", *args],
             capture_output=True, text=True, cwd=cwd,
         )
 

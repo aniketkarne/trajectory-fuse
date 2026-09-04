@@ -1,4 +1,4 @@
-"""Optional pytest-benchmark plugin integration for agent-fuse.
+"""Optional pytest-benchmark plugin integration for trajectory-fuse.
 
 These tests share workload definitions with ``benchmarks/run_benchmarks.py``
 (imported there as ``bench_*`` callables) but use ``pytest-benchmark``'s
@@ -30,7 +30,7 @@ sys.path.insert(0, str(_REPO / "src"))
 
 pytest.importorskip("pytest_benchmark", reason="pytest-benchmark not installed")
 
-from agent_fuse import (  # noqa: E402
+from trajectory_fuse import (  # noqa: E402
     Action,
     AgentFuse,
     CycleConfig,
@@ -148,7 +148,7 @@ def test_bench_canonical_hash(benchmark):
 
 
 def test_bench_sqlite_persist(benchmark, tmp_path):
-    from agent_fuse.types import TrajectoryRecord
+    from trajectory_fuse.types import TrajectoryRecord
 
     db = tmp_path / "traj.db"
     store = TrajectoryStore(str(db), run_id="bench")

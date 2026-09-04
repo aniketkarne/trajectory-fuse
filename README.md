@@ -1,7 +1,7 @@
-# agent-fuse
+# trajectory-fuse
 
 <p align="center">
-  <img src="assets/agent-fuse-hero.jpg" alt="agent-fuse runtime loop and deadlock breaker" width="1280">
+  <img src="assets/trajectory-fuse-hero.jpg" alt="trajectory-fuse runtime loop and deadlock breaker" width="1280">
 </p>
 
 
@@ -40,7 +40,7 @@
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-`agent-fuse` is a small, **zero-dependency**, **fully-local** runtime guard for the
+`trajectory-fuse` is a small, **zero-dependency**, **fully-local** runtime guard for the
 tool-call trajectory of an LLM agent. It is not an LLM framework and it never
 calls your model — it watches the actions your agent emits and raises a
 structured exception when those actions start looping.
@@ -73,8 +73,8 @@ budgets tripping, stats accumulating — in **under 50 milliseconds** with
 no network calls and no model:
 
 ```bash
-pip install agent-fuse
-agent-fuse demo
+pip install trajectory-fuse
+trajectory-fuse demo
 ```
 
 Or, in a source checkout, the same script runs directly:
@@ -113,7 +113,7 @@ That last `time_avoided_seconds` is set by the caller — see
 ## 60-second quickstart
 
 ```python
-from agent_fuse import AgentFuse, DeadlockDetected, FuseConfig
+from trajectory_fuse import AgentFuse, DeadlockDetected, FuseConfig
 
 fuse = AgentFuse(FuseConfig(window=20))
 
@@ -147,7 +147,7 @@ loop becomes unbounded. Each iteration costs a model call *and* a tool
 call, so the dollar counter moves monotonically upward while nothing
 real is happening.
 
-`agent-fuse` does three things about this:
+`trajectory-fuse` does three things about this:
 
 1. **Detects** the patterns that mean "this trajectory is not making
    progress" — direct repeats, N-state cycles, and *semantic* stagnation
@@ -171,7 +171,7 @@ release ships an ergonomic decorator that does preflight + post-call +
 exception capture automatically. Both names work and are equivalent:
 
 ```python
-from agent_fuse import AgentFuse, fuse_namespace
+from trajectory_fuse import AgentFuse, fuse_namespace
 
 fuse = AgentFuse()
 guard = fuse_namespace(fuse)       # or just use `fuse.tool` directly
@@ -322,7 +322,7 @@ except DeadlockDetected as exc:
 `FuseConfig(budgets=RunBudget(...))` enforces hard ceilings:
 
 ```python
-from agent_fuse import RunBudget
+from trajectory_fuse import RunBudget
 
 FuseConfig(
     budgets=RunBudget(
@@ -341,7 +341,7 @@ nothing.
 
 ## Privacy
 
-`agent-fuse` is intentionally boring on this axis:
+`trajectory-fuse` is intentionally boring on this axis:
 
 * **no LLM calls** — the library never talks to a model.
 * **no network calls** — the library never opens a socket.
@@ -361,14 +361,14 @@ and you can scope retention accordingly.
 ## CLI
 
 ```bash
-agent-fuse demo                 # run the bundled circuit-breaker demo
-agent-fuse analyse traj.jsonl   # replay a saved trajectory, report first deadlock
-agent-fuse replay  traj.jsonl   # stream into a live fuse, no raise
-agent-fuse export  traj.jsonl --out report.html
-agent-fuse export  traj.jsonl --out timeline.svg
-agent-fuse export  traj.jsonl --out graph.md
-agent-fuse stats   traj.jsonl   # counts, success rate, unique tools
-agent-fuse hash    '{"q": 1}'   # canonical hash of a JSON literal
+trajectory-fuse demo                 # run the bundled circuit-breaker demo
+trajectory-fuse analyse traj.jsonl   # replay a saved trajectory, report first deadlock
+trajectory-fuse replay  traj.jsonl   # stream into a live fuse, no raise
+trajectory-fuse export  traj.jsonl --out report.html
+trajectory-fuse export  traj.jsonl --out timeline.svg
+trajectory-fuse export  traj.jsonl --out graph.md
+trajectory-fuse stats   traj.jsonl   # counts, success rate, unique tools
+trajectory-fuse hash    '{"q": 1}'   # canonical hash of a JSON literal
 ```
 
 `analyse` accepts the same tuning knobs as `FuseConfig` —
@@ -384,7 +384,7 @@ stdlib-only and the scripts ship in the wheel:
 
 ```bash
 # stdlib harness (no extra deps)
-agent-fuse demo               # smoke: <100 ms total, see Immediate demo
+trajectory-fuse demo               # smoke: <100 ms total, see Immediate demo
 python3 benchmarks/run_benchmarks.py        # full benchmark
 python3 benchmarks/run_benchmarks.py --strict   # fail on regressions
 
@@ -472,22 +472,22 @@ disabled (`direct_repeat_threshold<2`, `cycle_min_length<2`,
 ### CLI flags
 
 ```
-agent-fuse demo
-agent-fuse analyse INPUT.jsonl [--db PATH] [--run-id ID] [--window N]
+trajectory-fuse demo
+trajectory-fuse analyse INPUT.jsonl [--db PATH] [--run-id ID] [--window N]
                             [--direct-repeat N] [--cycle-min N] [--cycle-max N]
                             [--stagnation-window N] [--stagnation-threshold F]
                             [--stagnation-min-failures N] [--no-stagnation]
                             [--allowlist TOOL …] [--json]
 
-agent-fuse export  INPUT.jsonl --out OUT.{html,svg,md} [--run-id ID]
+trajectory-fuse export  INPUT.jsonl --out OUT.{html,svg,md} [--run-id ID]
                             [--no-progress]
 
-agent-fuse replay  INPUT.jsonl [--window N] [--direct-repeat N]
+trajectory-fuse replay  INPUT.jsonl [--window N] [--direct-repeat N]
                             [--allowlist TOOL …] [--quiet]
 
-agent-fuse stats   INPUT.jsonl [--json]
+trajectory-fuse stats   INPUT.jsonl [--json]
 
-agent-fuse hash    JSON_LITERAL
+trajectory-fuse hash    JSON_LITERAL
 ```
 
 ## JSONL format
@@ -528,8 +528,8 @@ attributes and a structured message.
 ## Programmatic visualisation
 
 ```python
-from agent_fuse.export import render_html, render_mermaid, render_svg
-from agent_fuse.loader import load_jsonl
+from trajectory_fuse.export import render_html, render_mermaid, render_svg
+from trajectory_fuse.loader import load_jsonl
 
 records = load_jsonl("traj.jsonl")
 html = render_html(records, run_id="abc")           # standalone HTML+inline SVG
@@ -543,14 +543,14 @@ embed in Mermaid / HTML / SVG without escaping your shell.
 ## Installation
 
 ```bash
-pip install agent-fuse
+pip install trajectory-fuse
 ```
 
 Or to hack on it:
 
 ```bash
-git clone https://github.com/aniketkarne-com/agent-fuse
-cd agent-fuse
+git clone https://github.com/aniketkarne/trajectory-fuse
+cd trajectory-fuse
 pip install -e .[dev]
 pytest                            # 184 tests
 python3 -m pytest -q              # same thing, quieter
@@ -560,7 +560,7 @@ Requires Python **3.9+**. Zero runtime dependencies.
 
 ## Limitations
 
-A few honest notes on what `agent-fuse` is and isn't:
+A few honest notes on what `trajectory-fuse` is and isn't:
 
 * **In-process only.** The fuse guards a *single* Python process. If
   your agent spans multiple workers (Ray, Celery, an HTTP service), each
@@ -589,7 +589,7 @@ A few honest notes on what `agent-fuse` is and isn't:
 
 ```bash
 pytest                            # 184 tests
-pytest --cov=agent_fuse            # with coverage (requires pytest-cov)
+pytest --cov=trajectory_fuse            # with coverage (requires pytest-cov)
 python3 benchmarks/run_benchmarks.py
 ```
 

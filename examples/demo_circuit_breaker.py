@@ -1,4 +1,4 @@
-"""End-to-end demo of agent-fuse 0.2.0 as a *circuit breaker*.
+"""End-to-end demo of trajectory-fuse 0.2.0 as a *circuit breaker*.
 
 Run::
 
@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import time
 
-from agent_fuse import (
+from trajectory_fuse import (
     Action,
     AgentFuse,
     DeadlockDetected,
@@ -71,7 +71,7 @@ def main() -> None:
     )
     # Replace the None above with an explicit config (kept separate for
     # readability in the print output below).
-    from agent_fuse import StagnationConfig
+    from trajectory_fuse import StagnationConfig
 
     cfg.stagnation = StagnationConfig(min_failures=2, similarity_threshold=0.8)
 
@@ -125,7 +125,7 @@ def main() -> None:
     # ------------------------------------------------------------------
     print("\n[scenario 3] action budget trips after 10 calls")
     fresh = AgentFuse(FuseConfig(budgets=RunBudget(max_actions=10)))
-    from agent_fuse import BudgetExceeded
+    from trajectory_fuse import BudgetExceeded
 
     tripped = False
     for i in range(15):

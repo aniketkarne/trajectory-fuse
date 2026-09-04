@@ -1,4 +1,4 @@
-"""Public type definitions for agent-fuse."""
+"""Public type definitions for trajectory-fuse."""
 
 from __future__ import annotations
 

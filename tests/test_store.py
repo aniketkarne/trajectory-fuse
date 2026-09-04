@@ -9,9 +9,9 @@ import tempfile
 
 import pytest
 
-from agent_fuse import AgentFuse, Action, FuseConfig
-from agent_fuse.store import TrajectoryStore, open_store
-from agent_fuse.types import TrajectoryRecord
+from trajectory_fuse import AgentFuse, Action, FuseConfig
+from trajectory_fuse.store import TrajectoryStore, open_store
+from trajectory_fuse.types import TrajectoryRecord
 
 
 @pytest.fixture
@@ -175,7 +175,7 @@ class TestTrajectoryStoreIntegration:
         cfg = FuseConfig(store_factory=lambda: tmp_store, run_id="run-1")
         fuse = AgentFuse(cfg)
         fuse.observe(Action(tool="a", args={}, result="ok", success=True))
-        fuse.mark_progress(__import__("agent_fuse").types.ProgressSignal(token="got new state"))
+        fuse.mark_progress(__import__("trajectory_fuse").types.ProgressSignal(token="got new state"))
         rows = tmp_store.list_records()
         assert len(rows) == 2
         assert rows[1].is_progress is True

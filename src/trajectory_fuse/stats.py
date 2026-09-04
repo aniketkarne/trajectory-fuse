@@ -1,4 +1,4 @@
-"""Run statistics for :class:`agent_fuse.AgentFuse`.
+"""Run statistics for :class:`trajectory_fuse.AgentFuse`.
 
 The stats dataclass is intentionally cheap to read and cheap to update —
 every :meth:`AgentFuse.observe` increments a counter or two, and reading

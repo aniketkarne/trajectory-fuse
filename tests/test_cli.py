@@ -10,10 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from agent_fuse.cli import main
-from agent_fuse.export import render_html, render_mermaid, render_svg
-from agent_fuse.loader import load_jsonl, normalise_row
-from agent_fuse.types import TrajectoryRecord
+from trajectory_fuse.cli import main
+from trajectory_fuse.export import render_html, render_mermaid, render_svg
+from trajectory_fuse.loader import load_jsonl, normalise_row
+from trajectory_fuse.types import TrajectoryRecord
 
 
 def _write_jsonl(path, rows):
@@ -24,7 +24,7 @@ def _write_jsonl(path, rows):
 
 def _invoke(args, cwd=None):
     return subprocess.run(
-        [sys.executable, "-m", "agent_fuse.cli", *args],
+        [sys.executable, "-m", "trajectory_fuse.cli", *args],
         capture_output=True,
         text=True,
         cwd=cwd,
@@ -35,12 +35,12 @@ class TestCLIBasic:
     def test_help(self):
         result = _invoke(["--help"])
         assert result.returncode == 0
-        assert "agent-fuse" in result.stdout
+        assert "trajectory-fuse" in result.stdout
 
     def test_version(self):
         result = _invoke(["--version"])
         assert result.returncode == 0
-        assert "agent-fuse" in result.stdout
+        assert "trajectory-fuse" in result.stdout
 
     def test_hash(self):
         result = _invoke(["hash", '{"a": 1, "b": [1, 2]}'])
@@ -154,7 +154,7 @@ class TestCLIExport:
         body = out.read_text()
         assert "<svg" in body
         assert "<table" in body
-        assert "agent-fuse" in body
+        assert "trajectory-fuse" in body
 
     def test_export_svg(self, tmp_path):
         traj = tmp_path / "t.jsonl"

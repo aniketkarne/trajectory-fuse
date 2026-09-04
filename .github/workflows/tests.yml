@@ -27,6 +27,6 @@ jobs:
           python -m pytest -q
       - name: CLI smoke
         run: |
-          agent-fuse --version
-          agent-fuse demo > /tmp/demo.out
+          trajectory-fuse --version
+          trajectory-fuse demo > /tmp/demo.out
           test -s /tmp/demo.out

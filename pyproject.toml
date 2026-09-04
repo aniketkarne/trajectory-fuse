@@ -3,13 +3,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agent-fuse"
+name = "trajectory-fuse"
 version = "0.2.0"
 description = "Circuit-breaker for agent tool-call loops — detect deadlocks, semantic stagnation, and runaway cycles before they cost you a dollar."
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "Aniket Karne", email = "aniketkarne-com@users.noreply.github.com"},
+    {name = "Aniket Karne", email = "aniketkarne@users.noreply.github.com"},
 ]
 keywords = [
     "agent",
@@ -44,19 +44,19 @@ dev = [
 ]
 
 [project.scripts]
-agent-fuse = "agent_fuse.cli:main"
+trajectory-fuse = "trajectory_fuse.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/aniketkarne-com/agent-fuse"
-Repository = "https://github.com/aniketkarne-com/agent-fuse.git"
-Issues = "https://github.com/aniketkarne-com/agent-fuse/issues"
+Homepage = "https://github.com/aniketkarne/trajectory-fuse"
+Repository = "https://github.com/aniketkarne/trajectory-fuse.git"
+Issues = "https://github.com/aniketkarne/trajectory-fuse/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/agent_fuse"]
+packages = ["src/trajectory_fuse"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"examples" = "agent_fuse/share/examples"
-"benchmarks" = "agent_fuse/share/benchmarks"
+"examples" = "trajectory_fuse/share/examples"
+"benchmarks" = "trajectory_fuse/share/benchmarks"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
