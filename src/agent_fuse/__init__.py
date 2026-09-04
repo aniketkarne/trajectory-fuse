@@ -5,8 +5,18 @@ tool-call trajectories. Zero external dependencies; Python 3.9+.
 """
 
 from .exceptions import DeadlockDetected
-from .guard import AgentFuse, Action, CycleConfig, StagnationConfig, FuseConfig
+from .guard import (
+    AgentFuse,
+    Action,
+    BudgetExceeded,
+    CycleConfig,
+    FuseConfig,
+    RunBudget,
+    StagnationConfig,
+    fuse_namespace,
+)
 from .hashing import canonical_hash
+from .stats import FuseStats
 from .store import TrajectoryStore
 from .types import (
     Detection,
@@ -19,17 +29,21 @@ from .types import (
 __all__ = [
     "Action",
     "AgentFuse",
+    "BudgetExceeded",
     "CycleConfig",
     "DeadlockDetected",
     "Detection",
     "DetectionKind",
     "FuseConfig",
+    "FuseStats",
     "ProgressSignal",
+    "RunBudget",
     "SteeringHook",
     "StagnationConfig",
     "TrajectoryRecord",
     "TrajectoryStore",
     "canonical_hash",
+    "fuse_namespace",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

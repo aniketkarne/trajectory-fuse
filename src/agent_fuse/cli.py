@@ -86,6 +86,17 @@ def _build_parser() -> argparse.ArgumentParser:
     h = sub.add_parser("hash", help="Print the canonical hash for a JSON argument.")
     h.add_argument("arg_json", help="A JSON literal")
 
+    # ---- demo -------------------------------------------------------------
+    d = sub.add_parser(
+        "demo",
+        help="Run the in-process circuit-breaker demo (no network, no LLM).",
+    )
+    d.add_argument(
+        "--path",
+        default=None,
+        help="Override the demo script path (defaults to examples/demo_circuit_breaker.py).",
+    )
+
     return p
 
 
@@ -298,6 +309,59 @@ def _hash(args) -> int:
 
 
 # ---------------------------------------------------------------------------
+# demo
+
+
+def _demo(args) -> int:
+    """Run the bundled circuit-breaker demo as ``python examples/demo_circuit_breaker.py``.
+
+    The demo is stdlib-only and exits with status 0 on success. We locate
+    the script relative to the installed package (or, in a source checkout,
+    the repo root) and exec it through ``runpy`` so the user sees exactly
+    the same output as a direct ``python examples/demo_circuit_breaker.py``
+    invocation.
+    """
+    import runpy
+
+    # Resolve candidate paths. Prefer (a) an explicit --path, (b) a script
+    # shipped alongside the installed package (via wheel data), (c)
+    # examples/ in CWD (source checkout).
+    candidates: List[str] = []
+    if args.path:
+        candidates.append(args.path)
+    pkg_dir = os.path.dirname(os.path.abspath(__file__))
+    # Wheel data layout: <site-packages>/agent_fuse/share/examples/...
+    candidates.append(
+        os.path.join(pkg_dir, "share", "examples", "demo_circuit_breaker.py")
+    )
+    # Source layout: <repo>/src/agent_fuse/cli.py -> <repo>/examples/...
+    candidates.append(
+        os.path.join(os.path.dirname(pkg_dir), "..", "examples", "demo_circuit_breaker.py")
+    )
+    candidates.append("examples/demo_circuit_breaker.py")
+
+    chosen: Optional[str] = None
+    for c in candidates:
+        c_abs = os.path.abspath(c)
+        if os.path.isfile(c_abs):
+            chosen = c_abs
+            break
+    if chosen is None:
+        print(
+            "could not locate examples/demo_circuit_breaker.py — pass --path",
+            file=sys.stderr,
+        )
+        return 2
+
+    print(f"[agent-fuse] running demo: {chosen}")
+    try:
+        runpy.run_path(chosen, run_name="__main__")
+    except SystemExit as exc:
+        return int(exc.code or 0)
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # entry
 
 
@@ -315,6 +379,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _stats(args)
         if args.command == "hash":
             return _hash(args)
+        if args.command == "demo":
+            return _demo(args)
     except FileNotFoundError as exc:
         print(f"file not found: {exc.filename}", file=sys.stderr)
         return 2

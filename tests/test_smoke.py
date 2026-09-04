@@ -4,17 +4,21 @@ import agent_fuse
 from agent_fuse import (
     Action,
     AgentFuse,
+    BudgetExceeded,
     CycleConfig,
     DeadlockDetected,
     Detection,
     DetectionKind,
     FuseConfig,
+    FuseStats,
     ProgressSignal,
+    RunBudget,
     StagnationConfig,
     SteeringHook,
     TrajectoryRecord,
     TrajectoryStore,
     canonical_hash,
+    fuse_namespace,
 )
 
 
@@ -27,17 +31,21 @@ def test_all_symbols_importable():
     for name in (
         "Action",
         "AgentFuse",
+        "BudgetExceeded",
         "CycleConfig",
         "DeadlockDetected",
         "Detection",
         "DetectionKind",
         "FuseConfig",
+        "FuseStats",
         "ProgressSignal",
+        "RunBudget",
         "StagnationConfig",
         "SteeringHook",
         "TrajectoryRecord",
         "TrajectoryStore",
         "canonical_hash",
+        "fuse_namespace",
     ):
         assert hasattr(agent_fuse, name)
 
@@ -61,10 +69,12 @@ def test_module_submodules_present():
     import agent_fuse.guard
     import agent_fuse.hashing
     import agent_fuse.loader
+    import agent_fuse.stats
     import agent_fuse.store
 
     assert hasattr(agent_fuse.export, "render_html")
     assert hasattr(agent_fuse.guard, "AgentFuse")
     assert hasattr(agent_fuse.hashing, "canonical_hash")
     assert hasattr(agent_fuse.loader, "load_jsonl")
+    assert hasattr(agent_fuse.stats, "FuseStats")
     assert hasattr(agent_fuse.store, "TrajectoryStore")

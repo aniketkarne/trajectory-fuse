@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agent-fuse"
-version = "0.1.0"
-description = "In-process runtime guard for agent tool-call loops — detects deadlocks, semantic stagnation, and cycles."
+version = "0.2.0"
+description = "Circuit-breaker for agent tool-call loops — detect deadlocks, semantic stagnation, and runaway cycles before they cost you a dollar."
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -53,6 +53,10 @@ Issues = "https://github.com/aniketkarne-com/agent-fuse/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agent_fuse"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"examples" = "agent_fuse/share/examples"
+"benchmarks" = "agent_fuse/share/benchmarks"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
