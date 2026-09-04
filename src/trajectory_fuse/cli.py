@@ -316,36 +316,55 @@ def _demo(args) -> int:
     """Run the bundled circuit-breaker demo as ``python examples/demo_circuit_breaker.py``.
 
     The demo is stdlib-only and exits with status 0 on success. We locate
-    the script relative to the installed package (or, in a source checkout,
-    the repo root) and exec it through ``runpy`` so the user sees exactly
-    the same output as a direct ``python examples/demo_circuit_breaker.py``
-    invocation.
+    the script via ``importlib.resources`` (pip-install-safe), then fall
+    back to source-tree and CWD candidates, then exec it through
+    ``runpy`` so the user sees exactly the same output as a direct
+    ``python examples/demo_circuit_breaker.py`` invocation.
     """
     import runpy
-
-    # Resolve candidate paths. Prefer (a) an explicit --path, (b) a script
-    # shipped alongside the installed package (via wheel data), (c)
-    # examples/ in CWD (source checkout).
-    candidates: List[str] = []
-    if args.path:
-        candidates.append(args.path)
-    pkg_dir = os.path.dirname(os.path.abspath(__file__))
-    # Wheel data layout: <site-packages>/trajectory_fuse/share/examples/...
-    candidates.append(
-        os.path.join(pkg_dir, "share", "examples", "demo_circuit_breaker.py")
-    )
-    # Source layout: <repo>/src/trajectory_fuse/cli.py -> <repo>/examples/...
-    candidates.append(
-        os.path.join(os.path.dirname(pkg_dir), "..", "examples", "demo_circuit_breaker.py")
-    )
-    candidates.append("examples/demo_circuit_breaker.py")
+    from importlib import resources
 
     chosen: Optional[str] = None
-    for c in candidates:
-        c_abs = os.path.abspath(c)
-        if os.path.isfile(c_abs):
-            chosen = c_abs
-            break
+
+    # 1. Explicit override always wins.
+    if args.path:
+        chosen = os.path.abspath(args.path)
+        if not os.path.isfile(chosen):
+            chosen = None
+
+    # 2. Wheel-shipped data: importlib.resources walks sys.path and the
+    #    installed .data/ directory correctly across pip, uv, and editable
+    #    installs. This is the canonical way to locate package data since
+    #    Python 3.9.
+    if chosen is None:
+        try:
+            res = resources.files("trajectory_fuse").joinpath(
+                "share", "examples", "demo_circuit_breaker.py"
+            )
+            # resources.as_file gives a real filesystem path; context-manager
+            # cleans up the temp copy on exit, so we read & write to a stable
+            # path before runpy sees it.
+            with resources.as_file(res) as p:
+                if p.is_file():
+                    chosen = str(p)
+        except (ModuleNotFoundError, FileNotFoundError):
+            pass
+
+    # 3. Source checkout: <repo>/src/trajectory_fuse/cli.py -> <repo>/examples/...
+    if chosen is None:
+        pkg_dir = os.path.dirname(os.path.abspath(__file__))
+        src_candidate = os.path.normpath(
+            os.path.join(pkg_dir, "..", "..", "examples", "demo_circuit_breaker.py")
+        )
+        if os.path.isfile(src_candidate):
+            chosen = src_candidate
+
+    # 4. CWD fallback for users who just cloned and ran from the repo root.
+    if chosen is None:
+        cwd_candidate = os.path.abspath("examples/demo_circuit_breaker.py")
+        if os.path.isfile(cwd_candidate):
+            chosen = cwd_candidate
+
     if chosen is None:
         print(
             "could not locate examples/demo_circuit_breaker.py — pass --path",

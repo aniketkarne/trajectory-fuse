@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "trajectory-fuse"
-version = "0.2.0"
+version = "0.2.1"
 description = "Circuit-breaker for agent tool-call loops — detect deadlocks, semantic stagnation, and runaway cycles before they cost you a dollar."
 readme = "README.md"
 license = {text = "MIT"}
