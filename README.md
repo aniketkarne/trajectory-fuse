@@ -126,6 +126,37 @@ agent-fuse analyse traj.jsonl --json
 agent-fuse stats traj.jsonl
 ```
 
+## Benchmarks
+
+`agent-fuse` includes a reproducible benchmark harness so runtime overhead is visible before adoption. The benchmark runs on the same public APIs used by production code and covers detection, hashing, and SQLite persistence.
+
+Run it from a checkout:
+
+```bash
+python3 benchmarks/run_benchmarks.py
+```
+
+Latest baseline on macOS / Python 3.9:
+
+```text
+scenario                       rounds  samples  per-call µs (min/median/mean)
+observe_normal                 2000        3   109.90 /  110.60 /  110.45
+observe_with_store              500        3   442.99 /  444.04 /  444.83
+direct_repeat_detect           5000        3     9.86 /    9.87 /    9.87
+cycle_detect                   2000        3    14.75 /   14.75 /   14.76
+stagnation_detect              2000        3     7.07 /    7.19 /    7.16
+canonical_hash                50000        3     4.51 /    4.55 /    4.54
+sqlite_persist                 2000        3   340.36 /  343.69 /  345.92
+
+OK (no baseline violations; use --strict to fail on regressions)
+```
+
+The numbers are machine-dependent; they are a reference baseline, not a performance guarantee. Use `--strict` to fail when a result exceeds the checked-in thresholds in `benchmarks/BASELINE.json`. The benchmark suite can also be run through pytest when `pytest-benchmark` is installed:
+
+```bash
+python3 -m pytest tests/ benchmarks/test_benchmarks.py -q
+```
+
 ## Detection modes
 
 | Mode                       | Trigger                                                            | Configurable via                      |
