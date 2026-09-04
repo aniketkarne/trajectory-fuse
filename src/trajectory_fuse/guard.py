@@ -322,6 +322,13 @@ class AgentFuse:
             self.config.run_id if self.config.run_id else (self._store.run_id if self._store else "")
         )
 
+    def __repr__(self) -> str:
+        return (
+            f"AgentFuse(window={self.config.window}, "
+            f"actions={len(self._actions)}, "
+            f"stats={self.stats!r})"
+        )
+
     # -- lifecycle ---------------------------------------------------------
 
     def close(self) -> None:

@@ -4,6 +4,19 @@ Detects deadlocks, semantic stagnation, and repeating cycles in agent
 tool-call trajectories. Zero external dependencies; Python 3.9+.
 """
 
+from __future__ import annotations
+
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
+try:
+    __version__ = _pkg_version("trajectory-fuse")
+except PackageNotFoundError:  # pragma: no cover - source checkout / not installed
+    # The literal here is a fallback for editable installs and source
+    # checkouts where importlib.metadata cannot find the distribution.
+    # PyPI-published builds always use the value from pyproject.toml via
+    # importlib.metadata above. Bump both together when releasing.
+    __version__ = "0.2.2+unknown"
+
 from .exceptions import DeadlockDetected
 from .guard import (
     AgentFuse,
@@ -45,5 +58,3 @@ __all__ = [
     "canonical_hash",
     "fuse_namespace",
 ]
-
-__version__ = "0.2.1"

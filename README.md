@@ -4,6 +4,18 @@
   <img src="assets/trajectory-fuse-hero.jpg" alt="trajectory-fuse runtime loop and deadlock breaker" width="1280">
 </p>
 
+<p align="center">
+  <a href="https://pypi.org/project/trajectory-fuse/"><img src="https://img.shields.io/pypi/v/trajectory-fuse.svg" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/trajectory-fuse/"><img src="https://img.shields.io/pypi/pyversions/trajectory-fuse.svg" alt="Python versions"></a>
+  <a href="https://github.com/aniketkarne/trajectory-fuse/actions"><img src="https://img.shields.io/github/actions/workflow/status/aniketkarne/trajectory-fuse/tests.yml?branch=main&label=tests" alt="Tests"></a>
+  <a href="https://github.com/aniketkarne/trajectory-fuse/blob/main/LICENSE"><img src="https://img.shields.io/github/license/aniketkarne/trajectory-fuse.svg" alt="License: MIT"></a>
+  <a href="https://pepy.tech/project/trajectory-fuse"><img src="https://static.pepy.tech/badge/trajectory-fuse" alt="Downloads"></a>
+</p>
+
+<p align="center">
+  <b>184 tests</b> pass in <b>0.87s</b> on Python 3.9–3.12. The bundled <code>--demo</code> runs in <b>3ms</b> with zero network, zero LLM, and zero optional deps.
+</p>
+
 
 > **A circuit breaker for LLM agent tool-call loops.**
 > Catches the loop *before* it costs you another dollar.
