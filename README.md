@@ -1,5 +1,10 @@
 # agent-fuse
 
+<p align="center">
+  <img src="assets/agent-fuse-hero.jpg" alt="agent-fuse runtime loop and deadlock breaker" width="1280">
+</p>
+
+
 > **A circuit breaker for LLM agent tool-call loops.**
 > Catches the loop *before* it costs you another dollar.
 
