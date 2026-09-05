@@ -1,7 +1,7 @@
 # trajectory-fuse
 
 <p align="center">
-  <img src="assets/trajectory-fuse-hero.jpg" alt="trajectory-fuse runtime loop and deadlock breaker" width="1280">
+<img width="1219" height="569" alt="image" src="https://github.com/user-attachments/assets/e2244610-6b90-41c0-b9b6-27cac2ea52ac" />
 </p>
 
 <p align="center">
