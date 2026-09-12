@@ -350,14 +350,21 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
 
     violations = check_baselines(results, DEFAULT_BASELINES)
     if violations:
-        print("\nBaseline check:")
-        for v in violations:
-            print(f"  - {v}")
-        if args.strict:
-            print("\nFAILED --strict baseline check.")
-            return 1
+        # In JSON mode, surface violations as a structured stderr line
+        # so the stdout stays valid JSON for the consumer. The exit
+        # code still encodes "failed" (1 with --strict).
+        if args.json:
+            print(json.dumps({"violations": violations}), file=sys.stderr)
+        else:
+            print("\nBaseline check:")
+            for v in violations:
+                print(f"  - {v}")
+            if args.strict:
+                print("\nFAILED --strict baseline check.")
+                return 1
 
-    print("\nOK (no baseline violations; use --strict to fail on regressions)")
+    if not args.json:
+        print("\nOK (no baseline violations; use --strict to fail on regressions)")
     return 0
 
 

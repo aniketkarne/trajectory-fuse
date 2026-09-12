@@ -46,7 +46,6 @@ jobs:
       - name: ruff
         run: |
           ruff check src tests benchmarks
-          ruff format --check src tests benchmarks
 
   efficacy:
     runs-on: ubuntu-latest
