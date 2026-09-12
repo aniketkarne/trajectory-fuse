@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "trajectory-fuse"
-version = "0.2.2"
+version = "0.3.0"
 description = "Circuit-breaker for agent tool-call loops — detect deadlocks, semantic stagnation, and runaway cycles before they cost you a dollar."
 readme = "README.md"
 license = {text = "MIT"}
@@ -41,6 +41,13 @@ dependencies = []
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
+    "ruff>=0.5",
+]
+langgraph = ["langgraph>=0.2"]
+openai-agents = ["openai-agents>=0.0.6"]
+pydantic-ai = ["pydantic-ai>=0.0.20"]
+all-integrations = [
+    "trajectory-fuse[langgraph,openai-agents,pydantic-ai]",
 ]
 
 [project.scripts]

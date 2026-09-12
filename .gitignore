@@ -55,3 +55,4 @@ coverage.xml
 *.sqlite3
 *.traj.jsonl
 artifacts/
+.local-tmp/

@@ -5,6 +5,7 @@ from trajectory_fuse import (
     Action,
     AgentFuse,
     BudgetExceeded,
+    Chain,
     CycleConfig,
     DeadlockDetected,
     Detection,
@@ -12,6 +13,8 @@ from trajectory_fuse import (
     FuseConfig,
     FuseStats,
     ProgressSignal,
+    RecoveryHook,
+    RecoveryPolicy,
     RunBudget,
     StagnationConfig,
     SteeringHook,
@@ -19,6 +22,10 @@ from trajectory_fuse import (
     TrajectoryStore,
     canonical_hash,
     fuse_namespace,
+    on_deadlock,
+    on_kind,
+    on_loop,
+    on_stagnation,
 )
 
 
@@ -32,6 +39,7 @@ def test_all_symbols_importable():
         "Action",
         "AgentFuse",
         "BudgetExceeded",
+        "Chain",
         "CycleConfig",
         "DeadlockDetected",
         "Detection",
@@ -39,13 +47,19 @@ def test_all_symbols_importable():
         "FuseConfig",
         "FuseStats",
         "ProgressSignal",
+        "RecoveryHook",
+        "RecoveryPolicy",
         "RunBudget",
-        "StagnationConfig",
         "SteeringHook",
+        "StagnationConfig",
         "TrajectoryRecord",
         "TrajectoryStore",
         "canonical_hash",
         "fuse_namespace",
+        "on_deadlock",
+        "on_kind",
+        "on_loop",
+        "on_stagnation",
     ):
         assert hasattr(trajectory_fuse, name)
 

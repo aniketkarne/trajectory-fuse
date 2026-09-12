@@ -15,7 +15,7 @@ except PackageNotFoundError:  # pragma: no cover - source checkout / not install
     # checkouts where importlib.metadata cannot find the distribution.
     # PyPI-published builds always use the value from pyproject.toml via
     # importlib.metadata above. Bump both together when releasing.
-    __version__ = "0.2.2+unknown"
+    __version__ = "0.3.0+unknown"
 
 from .exceptions import DeadlockDetected
 from .guard import (
@@ -29,6 +29,15 @@ from .guard import (
     fuse_namespace,
 )
 from .hashing import canonical_hash
+from .hooks import (
+    Chain,
+    RecoveryHook,
+    RecoveryPolicy,
+    on_deadlock,
+    on_kind,
+    on_loop,
+    on_stagnation,
+)
 from .stats import FuseStats
 from .store import TrajectoryStore
 from .types import (
@@ -43,6 +52,7 @@ __all__ = [
     "Action",
     "AgentFuse",
     "BudgetExceeded",
+    "Chain",
     "CycleConfig",
     "DeadlockDetected",
     "Detection",
@@ -50,6 +60,8 @@ __all__ = [
     "FuseConfig",
     "FuseStats",
     "ProgressSignal",
+    "RecoveryHook",
+    "RecoveryPolicy",
     "RunBudget",
     "SteeringHook",
     "StagnationConfig",
@@ -57,4 +69,8 @@ __all__ = [
     "TrajectoryStore",
     "canonical_hash",
     "fuse_namespace",
+    "on_deadlock",
+    "on_kind",
+    "on_loop",
+    "on_stagnation",
 ]

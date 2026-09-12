@@ -54,6 +54,7 @@ class FuseStats:
     calls_allowed: int = 0
     calls_blocked: int = 0
     deadlocks: int = 0
+    recovery_skips: int = 0
     progress_marks: int = 0
     time_avoided_seconds: float = 0.0
     first_deadlock_at: Optional[int] = None
@@ -68,6 +69,7 @@ class FuseStats:
             "calls_allowed": self.calls_allowed,
             "calls_blocked": self.calls_blocked,
             "deadlocks": self.deadlocks,
+            "recovery_skips": self.recovery_skips,
             "progress_marks": self.progress_marks,
             "time_avoided_seconds": self.time_avoided_seconds,
             "first_deadlock_at": self.first_deadlock_at,
@@ -79,6 +81,7 @@ class FuseStats:
         self.calls_allowed = 0
         self.calls_blocked = 0
         self.deadlocks = 0
+        self.recovery_skips = 0
         self.progress_marks = 0
         self.time_avoided_seconds = 0.0
         self.first_deadlock_at = None

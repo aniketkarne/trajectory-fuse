@@ -29,6 +29,7 @@ from typing import Any, Callable, Iterable, List, Optional, Sequence, Set
 
 from .exceptions import DeadlockDetected
 from .hashing import canonical_hash
+from .hooks import RecoveryPolicy
 from .stats import FuseStats
 from .store import TrajectoryStore
 from .types import (
@@ -291,9 +292,11 @@ class AgentFuse:
         self,
         config: Optional[FuseConfig] = None,
         steering_hook: Optional[SteeringHook] = None,
+        recovery_policy: Optional[RecoveryPolicy] = None,
     ) -> None:
         self.config: FuseConfig = config or FuseConfig()
         self.steering_hook = steering_hook
+        self.recovery_policy: Optional[RecoveryPolicy] = recovery_policy
         self._actions: List[Action] = []
         self._progress_marks: List[int] = []
         self._sequence = 0
@@ -546,6 +549,21 @@ class AgentFuse:
             except Exception:
                 # Hooks must not break the loop — swallow + log-style flag.
                 hint = None
+
+        # Recovery policy: give the host application a chance to swallow
+        # the deadlock and let the loop continue. A ``"continue"``
+        # disposition records a recovery_skip and returns without
+        # raising. A ``"raise"`` disposition (or no policy) falls
+        # through to the original raise below.
+        if self.recovery_policy is not None:
+            try:
+                disposition = self.recovery_policy.resolve(action, detection)
+            except Exception:
+                disposition = None
+            if disposition == "continue":
+                self.stats.recovery_skips += 1
+                self.stats.calls_allowed += 1
+                return
 
         msg = detection.message
         if hint is not None:
