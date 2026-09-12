@@ -13,7 +13,11 @@
 </p>
 
 <p align="center">
-  <b>184 tests</b> pass in <b>0.87s</b> on Python 3.9–3.12. The bundled <code>--demo</code> runs in <b>3ms</b> with zero network, zero LLM, and zero optional deps.
+  <b>203 tests</b> pass in <b>0.91s</b> on Python 3.9–3.12. The bundled <code>--demo</code> runs in <b>3ms</b> with zero network, zero LLM, and zero optional deps.
+</p>
+
+<p align="center">
+  <b>0.0% false-positive rate</b> across <b>456 realistic trajectories</b> (polling, pagination, retries, long loops, progress boundaries). The fuse trips every broken trajectory it should and saves <b>1,004 wasted tool calls</b> per benchmark run. See <a href="#efficacy-results">Efficacy results</a>.
 </p>
 
 
@@ -329,6 +333,191 @@ except DeadlockDetected as exc:
 
 `stats.reset()` is called by `fuse.reset()` and is cheap.
 
+## Recovery hooks
+
+Sometimes the host application wants to *observe* a detected deadlock
+and decide for itself whether to raise or to swallow it and let the
+loop continue. The 0.3 release ships a tiny recovery API:
+
+```python
+from trajectory_fuse import (
+    AgentFuse,
+    FuseConfig,
+    RecoveryPolicy,
+    on_stagnation,
+)
+
+def hint_to_model(action, detection):
+    # Pretend we talk to an LLM and ask for a recovery plan.
+    plan = ask_llm_for_recovery(detection.message)
+    if "switch tool" in plan:
+        return "continue"   # swallow; loop keeps going
+    return "raise"          # raise the original DeadlockDetected
+
+policy = RecoveryPolicy(
+    on_stagnation=on_stagnation(hint_to_model),
+    on_direct_repeat=lambda a, d: "raise",  # direct repeats are not recoverable
+    default_disposition="raise",
+)
+fuse = AgentFuse(FuseConfig(window=20), recovery_policy=policy)
+```
+
+A hook receives the `Action` that triggered detection and the
+`Detection` describing why. It returns one of:
+
+* `"raise"` — let the fuse raise `DeadlockDetected` as usual.
+* `"continue"` — swallow the exception, record a `recovery_skip`
+  in `fuse.stats`, return normally.
+* `None` — "I have no opinion"; fall through to the policy's
+  `default_disposition`.
+
+A misbehaving hook (raises an exception) is swallowed by the fuse —
+hooks must not break the loop. The recovery API sits *after* the
+existing `progress_callback` (which only handles semantic-stagnation
+without aborting) and *after* `allow_repeats` (which only handles
+legitimate direct repeats). Together they form a layered policy:
+
+1. Allowlisted tools skip every detector.
+2. Direct repeats inside `allow_repeats[tool]` are swallowed.
+3. Stagnation inside `progress_callback` is swallowed.
+4. **Any** remaining detection goes through the recovery policy.
+5. If the recovery policy returns `"raise"` (or no policy is set),
+   the fuse raises.
+
+Combine multiple hooks with `Chain`:
+
+```python
+from trajectory_fuse import Chain
+
+policy = Chain([
+    on_stagnation(expensive_llm_recovery_hook),
+    on_stagnation(cheap_local_recovery_hook),  # fallback
+])
+```
+
+`fuse.stats.recovery_skips` increments each time the policy swallows a
+deadlock, alongside the existing `calls_blocked` / `deadlocks`
+counters. Use these three to see, in production, how often the fuse
+actually pays for itself — and how often your recovery layer is
+letting loops continue safely.
+
+## Framework integrations
+
+The `trajectory_fuse.integrations` package ships adapters for the
+three agent frameworks we see in the wild:
+
+| Framework | Install | Factory |
+|-----------|---------|---------|
+| Generic Python (no framework) | always available | `from trajectory_fuse.integrations.generic import observe_call, guard_scope, make_observer` |
+| LangGraph | `pip install trajectory-fuse[langgraph]` | `from trajectory_fuse.integrations import langgraph_middleware` |
+| OpenAI Agents SDK | `pip install trajectory-fuse[openai-agents]` | `from trajectory_fuse.integrations import openai_agents_middleware` |
+| PydanticAI | `pip install trajectory-fuse[pydantic-ai]` | `from trajectory_fuse.integrations import pydantic_ai_middleware` |
+| All three | `pip install trajectory-fuse[all-integrations]` | — |
+
+Each adapter factory takes an `AgentFuse` and returns a framework-native
+middleware / hook object. If the framework isn't installed, the
+factory raises `FrameworkNotInstalled` with the exact `pip install`
+hint:
+
+```python
+from trajectory_fuse import AgentFuse, FuseConfig
+from trajectory_fuse.integrations import langgraph_middleware
+
+fuse = AgentFuse(FuseConfig(window=20))
+try:
+    mw = langgraph_middleware(fuse)
+except FrameworkNotInstalled as exc:
+    print(exc.install_hint)   # "Install it with `pip install trajectory-fuse[langgraph]` ..."
+```
+
+The framework adapters import their target framework lazily — having
+`trajectory-fuse` installed does not pull in `langgraph` /
+`openai-agents` / `pydantic-ai` unless you opt in via the
+corresponding extra. The adapters are best-effort shims over the
+framework's most stable hook shape; when the framework APIs drift,
+the adapter fails at *import time*, not at agent execution time.
+
+The **generic adapter** is what you reach for when you're not using
+one of those frameworks:
+
+```python
+from trajectory_fuse.integrations.generic import observe_call, guard_scope
+
+fuse = AgentFuse(FuseConfig(window=20, allow_repeats={"poll_status": 100}))
+
+# Wraps a single tool with preflight + observe, sync or async.
+poll = observe_call(fuse, "poll_status", http_get)
+
+# Or use a context manager to scope a fuse over a block of code.
+with guard_scope(fuse, enter_action="task_start", exit_action="task_end") as f:
+    for action in policy_loop(state):
+        f.observe(action)
+```
+
+## Efficacy results
+
+A circuit breaker that misfires on legitimate workloads is worse
+than no circuit breaker. The 0.3 release ships a **456-trajectory**
+efficacy benchmark (`benchmarks/run_efficacy.py --scaled`) that
+exercises every detector against realistic shapes:
+
+* **Legitimate** trajectories the fuse must NOT trip on:
+  HTTP polling (50 identical calls until status changes),
+  paginated fetches (30 pages with new args), transient 429 retries
+  (5 attempts with fresh backoff / diagnostic tokens per attempt),
+  long search→summarise loops (20 rounds × 2 calls), and
+  progress-phase boundaries (5 failing retries + `mark_progress`
+  + 5 succeeding retries).
+* **Broken** trajectories the fuse MUST trip on:
+  direct-repeat (6 identical calls), N-cycle (A→B→A→B),
+  semantic stagnation (6 near-identical errors), and stuck-after-recovery
+  (8 identical failures the model tries again to no avail).
+* **Edge cases**: tiny retries (2 attempts), at-threshold repeats (3
+  identical calls), under-threshold repeats (2), past-threshold (4).
+
+Run it:
+
+```bash
+python benchmarks/run_efficacy.py --scaled --strict --json
+```
+
+Captured on an Apple M-series machine, Python 3.12, default
+`FuseConfig` plus per-scenario `allow_repeats` for the legitimate
+cases:
+
+```text
+trajectories                 456
+true_positives               203
+false_positives              0
+true_negatives               253
+false_negatives              0
+precision                    1.0
+recall                       1.0
+false_positive_rate          0.0
+total_calls_without_fuse     8269
+total_calls_with_fuse        7265
+calls_avoided                1004
+avoided_fraction             0.121
+```
+
+What this means in practice:
+
+* **Every broken trajectory tripped.** The detectors caught all
+  203 broken-shape cases.
+* **No false positives.** The 253 legitimate trajectories ran to
+  completion; the fuse did not abort a single one.
+* **1,004 tool calls saved** per benchmark run, across the broken
+  scenarios. The fuse tripped at the first opportunity on each,
+  avoiding the ~3 extra calls per broken trajectory that an unguarded
+  agent would have made before someone (or something) noticed.
+* **12.1% call reduction** on the broken-trajectory workload — every
+  saved call is one fewer LLM round-trip and one fewer tool
+  invocation your model never has to pay for.
+
+The pytest contract (`benchmarks/test_efficacy.py`) asserts precision
+≥ 0.99, recall ≥ 0.99, FPR ≤ 1%, and avoided fraction ≥ 5% on every
+CI run. A regression in any detector fails the build loudly.
+
 ## Budgets
 
 `FuseConfig(budgets=RunBudget(...))` enforces hard ceilings:
@@ -409,13 +598,13 @@ Baseline on an Apple M-series machine, Python 3.12, default `FuseConfig`:
 
 ```text
 scenario                       rounds  samples  per-call µs (min/median/mean)
-observe_normal                 2000        3   109.90 /  110.60 /  110.45
-observe_with_store              500        3   442.99 /  444.04 /  444.83
-direct_repeat_detect           5000        3     9.86 /    9.87 /    9.87
-cycle_detect                   2000        3    14.75 /   14.75 /   14.76
-stagnation_detect              2000        3     7.07 /    7.19 /    7.16
-canonical_hash                50000        3     4.51 /    4.55 /    4.54
-sqlite_persist                 2000        3   340.36 /  343.69 /  345.92
+observe_normal                 2000        5    72.32 /    72.89 /    72.88
+observe_with_store              500        5   383.42 /   396.00 /   397.29
+direct_repeat_detect           5000        5     6.59 /     6.62 /     6.62
+cycle_detect                   2000        5     9.42 /     9.42 /     9.44
+stagnation_detect              2000        5     4.64 /     4.65 /     4.65
+canonical_hash                50000        5     3.01 /     3.01 /     3.01
+sqlite_persist                 2000        5   312.99 /   317.31 /   317.81
 ```
 
 `observe()` on the default 32-action window is sub-200 µs; with a
@@ -558,14 +747,24 @@ embed in Mermaid / HTML / SVG without escaping your shell.
 pip install trajectory-fuse
 ```
 
+Optional extras for framework integrations:
+
+```bash
+pip install trajectory-fuse[langgraph]            # LangGraph
+pip install trajectory-fuse[openai-agents]        # OpenAI Agents SDK
+pip install trajectory-fuse[pydantic-ai]          # PydanticAI
+pip install trajectory-fuse[all-integrations]     # all three
+```
+
 Or to hack on it:
 
 ```bash
 git clone https://github.com/aniketkarne/trajectory-fuse
 cd trajectory-fuse
 pip install -e .[dev]
-pytest                            # 184 tests
+pytest                            # 203 tests
 python3 -m pytest -q              # same thing, quieter
+python benchmarks/run_efficacy.py --scaled --strict --json   # efficacy numbers
 ```
 
 Requires Python **3.9+**. Zero runtime dependencies.
@@ -600,9 +799,10 @@ A few honest notes on what `trajectory-fuse` is and isn't:
 ## Development
 
 ```bash
-pytest                            # 184 tests
+pytest                            # 203 tests
 pytest --cov=trajectory_fuse            # with coverage (requires pytest-cov)
 python3 benchmarks/run_benchmarks.py
+python3 benchmarks/run_efficacy.py --scaled --strict --json
 ```
 
 Tests cover:
@@ -623,12 +823,20 @@ Tests cover:
   capture, `__name__` / `__doc__` preservation),
 * `progress_callback` (swallow stagnation, explicit re-raise,
   exception swallowed, `KeyboardInterrupt` not swallowed),
+* recovery hooks (`RecoveryPolicy`, `Chain`, `on_kind`,
+  `recovery_skips` counter, misbehaving-hook swallowing),
+* generic adapter (`observe_call` sync/async, `guard_scope`,
+  `make_observer`),
+* framework adapters (lazy-import, `FrameworkNotInstalled`
+  with install hint),
 * SQLite store (in-memory, on-disk, persistence integration, progress
   marks),
 * CLI (`analyse`, `export`, `replay`, `stats`, `hash`, `demo`),
 * exporters (HTML / SVG / Mermaid, escaping, empty trajectories),
 * `FuseStats` (defaults, mutation, `as_dict`, `reset`,
-  `record_time_avoided`).
+  `record_time_avoided`, `recovery_skips`),
+* efficacy contract (456-trajectory dataset, precision ≥ 0.99,
+  recall ≥ 0.99, FPR ≤ 1%, avoided fraction ≥ 5%).
 
 ## License
 

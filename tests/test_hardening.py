@@ -163,6 +163,7 @@ def test_stats_defaults_zero():
     assert s.calls_allowed == 0
     assert s.calls_blocked == 0
     assert s.deadlocks == 0
+    assert s.recovery_skips == 0
     assert s.progress_marks == 0
     assert s.time_avoided_seconds == 0.0
     assert s.first_deadlock_at is None
@@ -176,6 +177,7 @@ def test_stats_as_dict_shape():
         "calls_allowed": 1,
         "calls_blocked": 1,
         "deadlocks": 0,
+        "recovery_skips": 0,
         "progress_marks": 0,
         "time_avoided_seconds": 0.0,
         "first_deadlock_at": None,
@@ -188,6 +190,7 @@ def test_stats_reset_zeros_everything():
         calls_allowed=8,
         calls_blocked=2,
         deadlocks=2,
+        recovery_skips=1,
         progress_marks=3,
         time_avoided_seconds=1.5,
         first_deadlock_at=4,

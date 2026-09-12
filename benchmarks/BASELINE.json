@@ -1,10 +1,10 @@
 {
   "_comment": "Captured baseline numbers for the benchmark harness. Update this file whenever the runtime characteristics change in an expected way (e.g. switching to a faster hash, or adopting a more compact SQLite schema). The values here are reference points used by the README to set realistic expectations — they are *not* enforced thresholds (see benchmarks/run_benchmarks.py for hard ceilings). Numbers were captured on an Apple M-series machine running Python 3.12, default FuseConfig. Run `python benchmarks/run_benchmarks.py --samples 5 --json` and overwrite this file to refresh. Format: median per-call microseconds.",
-  "observe_normal": 100,
-  "observe_with_store": 425,
-  "direct_repeat_detect": 10,
-  "cycle_detect": 14,
-  "stagnation_detect": 7,
-  "canonical_hash": 4,
-  "sqlite_persist": 340
+  "observe_normal": 73,
+  "observe_with_store": 396,
+  "direct_repeat_detect": 7,
+  "cycle_detect": 9,
+  "stagnation_detect": 5,
+  "canonical_hash": 3,
+  "sqlite_persist": 317
 }

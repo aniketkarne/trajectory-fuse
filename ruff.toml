@@ -1,0 +1,30 @@
+# Minimal ruff config for trajectory-fuse.
+#
+# The codebase predates ruff; we apply the linter only to files
+# authored under this audit's scope and to the source modules.
+
+target-version = "py39"
+line-length = 110
+
+[lint]
+# Conservative defaults; catch real bugs but skip the kind of
+# pedantic churn that would balloon a PR into a refactor.
+#
+# We disable UP006/UP035/UP045 because the package targets
+# Python 3.9+, and PEP 604 union syntax (``X | None``) is only
+# valid from 3.10 onward. ``Optional[X]`` and ``List[X]`` are the
+# portable form.
+select = ["F", "S", "I"]
+ignore = [
+    "S110",  # try-except-pass — intentional in many places here.
+    "S112",  # try-except-continue — same.
+    "S101",  # assert in tests — pytest idiom.
+    "UP",    # Python 3.10+ syntax — out of scope until we drop 3.9.
+]
+
+[lint.per-file-ignores]
+# Pre-existing tests with stale imports — clean up over time.
+"tests/test_*.py" = ["F401"]
+# Benchmarks are deliberately permissive.
+"benchmarks/*" = ["F401", "E402"]
+"examples/*" = ["F401"]
