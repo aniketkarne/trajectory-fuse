@@ -1,7 +1,8 @@
 # trajectory-fuse
 
 <p align="center">
-<img width="1219" height="569" alt="image" src="https://github.com/user-attachments/assets/e2244610-6b90-41c0-b9b6-27cac2ea52ac" />
+<img width="1412" height="663" alt="Screenshot 2026-09-13 at 11 42 31" src="https://github.com/user-attachments/assets/78e019ed-8553-41d4-bd8b-193dd0db4ad1" />
+
 </p>
 
 <p align="center">
