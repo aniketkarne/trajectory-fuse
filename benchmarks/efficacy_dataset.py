@@ -272,6 +272,34 @@ def broken_stuck_after_recovery(seed: int = 0, repeats: int = 8) -> List[dict]:
     return out
 
 
+def broken_stuck_after_mark_evicted(seed: int = 0, fill: int = 40, fails: int = 5) -> List[dict]:
+    """Stuck loop *after* the progress mark has slid out of the window.
+
+    The mark's slide-out must not disarm the stagnation detector: every
+    action left in the window was observed after the mark, so trailing
+    near-identical failures are genuine post-mark stagnation. The failure
+    args are distinct per attempt so only the stagnation detector can
+    trip (direct-repeat and N-cycle cannot fire on unique arg hashes).
+    """
+    out = [
+        _ok("init", {"step": 0}, "started"),
+        _ok("init", {"step": 1}, "configured"),
+        _ok("init", {"step": 2}, "ready"),
+        _progress("phase-2", "moving to next phase"),
+    ]
+    for i in range(fill):
+        out.append(_ok("work", {"job": seed * 1000 + i}, "done"))
+    for i in range(fails):
+        out.append(
+            _fail(
+                "fetch",
+                {"attempt": seed * 1000 + i},
+                "timeout: connection refused by upstream",
+            )
+        )
+    return out
+
+
 # ---------------------------------------------------------------------
 # parametric variants for the scale benchmark
 
@@ -354,6 +382,9 @@ def iter_scaled_dataset() -> Iterator[tuple]:
         # Stagnation with only 3 fails — trips on direct_repeat before
         # stagnation has enough samples (so trips, not passes).
         ("stagnation/under_threshold", broken_stagnation(seed=99, fails=3), True),
+        # Stuck loop after the progress mark has slid out of the window —
+        # the slid-out mark must not disarm stagnation (trips).
+        ("stuck_mark_evicted/seed=99", broken_stuck_after_mark_evicted(seed=99), True),
     ]
     edges = list(edges)
 

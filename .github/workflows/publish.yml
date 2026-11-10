@@ -3,7 +3,10 @@ name: publish
 on:
   push:
     tags:
+      # v-prefixed (v1.2.3) and bare semver (1.2.3) — the repo's existing
+      # tags are bare semver, so the publish-on-tag path needs both.
       - "v*.*.*"
+      - "*.*.*"
   workflow_dispatch:
 
 jobs:

@@ -468,27 +468,22 @@ class AgentFuse:
 
         # Trim window.
         if len(self._actions) > self.config.window:
-            had_marks_before_trim = bool(self._progress_marks)
             drop = len(self._actions) - self.config.window
             self._actions = self._actions[drop:]
-            # Adjust progress marks accordingly. Synthesised anchors are
-            # sticky — they do not shift with subsequent trims — so the
-            # buffered actions before the synth cannot leak back into the
-            # post-mark region as new failures are observed.
+            # Shift progress marks along with the trim. A mark whose
+            # position slides out of the window is simply dropped: every
+            # action left in the window was observed *after* that mark, so
+            # the correct post-mark slice is the whole window (start = 0).
+            # A sticky anchor here would shrink the post-mark slice and
+            # silently disable stagnation detection for the rest of the run.
             new_marks: List[int] = []
             for m in self._progress_marks:
                 if m < 0:
-                    continue  # sentinel (synthesised anchor)
+                    continue  # defensive: legacy sentinel == slid out
                 shifted = m - drop
                 if shifted >= 0:
                     new_marks.append(shifted)
             self._progress_marks = new_marks
-            # When a mark slides out of the window entirely, record a
-            # "synthesised" anchor that the stagnation detector treats as
-            # "no post-mark actions yet". Use a negative sentinel so it is
-            # distinguishable from real marks and survives future trims.
-            if had_marks_before_trim and not self._progress_marks:
-                self._progress_marks = [-1]
 
         # Persist.
         if self._store is not None:
@@ -603,17 +598,22 @@ class AgentFuse:
         that tool: identical calls past ``N`` are accepted without
         raising (legitimate polling / retry). Tools not listed use
         :attr:`FuseConfig.cycle.direct_repeat_threshold` directly.
+
+        Works both from :meth:`observe` (where ``action`` is already the
+        last entry of ``self._actions``) and from preflight checks (where
+        ``action`` is synthetic and not recorded).
         """
         if action.tool not in self._allow_repeats:
             return False
         per_tool_threshold = self._allow_repeats[action.tool]
         if not per_tool_threshold:
             return False
-        last = action
-        last_hash = canonical_hash(last.args)
+        last_hash = canonical_hash(action.args)
         count = 1
-        for prev in reversed(self._actions[:-1]):
-            if prev.tool != last.tool:
+        for prev in reversed(self._actions):
+            if prev is action:
+                continue  # already recorded by observe(); don't double-count
+            if prev.tool != action.tool:
                 break
             if canonical_hash(prev.args) != last_hash:
                 break
@@ -641,11 +641,19 @@ class AgentFuse:
                 success=record.success,
             )
             if record.is_progress:
-                self._progress_marks.append(len(self._actions))
+                # Point at the first *post*-mark action (the marker row
+                # itself is appended below), matching mark_progress()
+                # semantics where the mark sits where the next action lands.
+                self._progress_marks.append(len(self._actions) + 1)
             self._actions.append(action)
             if len(self._actions) > self.config.window:
                 drop = len(self._actions) - self.config.window
                 self._actions = self._actions[drop:]
+                # Keep marks aligned with the trimmed window; a mark that
+                # slides out means everything left is post-mark.
+                self._progress_marks = [
+                    m - drop for m in self._progress_marks if m - drop >= 0
+                ]
 
     # -- detection ---------------------------------------------------------
 
@@ -751,10 +759,10 @@ class AgentFuse:
         # Find the most recent progress mark; only consider actions after it.
         # NOTE: ``_progress_marks`` is only mutated when ``record=True``;
         # preflight checks use the *full* action list as the relevant slice.
-        if self._progress_marks:
-            start = max(self._progress_marks)
-        else:
-            start = 0
+        # Negative entries (legacy sentinels) mean the mark slid out of the
+        # window, i.e. everything in view is post-mark: start at 0.
+        marks = [m for m in self._progress_marks if m >= 0]
+        start = max(marks) if marks else 0
         relevant = actions[start:]
         if len(relevant) < cfg.min_failures:
             return None
@@ -857,8 +865,9 @@ def _build_tool_decorator(fuse: "AgentFuse"):
             @_functools.wraps(fn)
             async def _async_wrapped(*args, **kwargs):
                 # Pre-call blocking check.
-                det = fuse.check(effective_name, {"args": args, "kwargs": kwargs})
-                if det is not None and not _is_allowed(fuse, effective_name, det):
+                synth = Action(tool=effective_name, args={"args": args, "kwargs": kwargs})
+                det = fuse.check_action(synth)
+                if det is not None and not _is_allowed(fuse, synth, det):
                     raise DeadlockDetected(
                         det.message, detection=det, trajectory=fuse.history, steering_hint=None
                     )
@@ -886,8 +895,9 @@ def _build_tool_decorator(fuse: "AgentFuse"):
 
         @_functools.wraps(fn)
         def _wrapped(*args, **kwargs):
-            det = fuse.check(effective_name, {"args": args, "kwargs": kwargs})
-            if det is not None and not _is_allowed(fuse, effective_name, det):
+            synth = Action(tool=effective_name, args={"args": args, "kwargs": kwargs})
+            det = fuse.check_action(synth)
+            if det is not None and not _is_allowed(fuse, synth, det):
                 raise DeadlockDetected(
                     det.message, detection=det, trajectory=fuse.history, steering_hint=None
                 )
@@ -922,12 +932,18 @@ def _build_tool_decorator(fuse: "AgentFuse"):
     return _tool
 
 
-def _is_allowed(fuse: "AgentFuse", tool: str, detection: Detection) -> bool:
-    """Return True if the per-call detection should NOT raise."""
-    if tool in fuse.config.allowlist:
+def _is_allowed(fuse: "AgentFuse", action: Action, detection: Detection) -> bool:
+    """Return True if the per-call detection should NOT raise.
+
+    Mirrors :meth:`AgentFuse.observe`'s suppression rules exactly — in
+    particular the per-tool ``allow_repeats`` *threshold* is counted, so a
+    call past the tolerated run of repeats is still blocked before the
+    tool runs (the wrapper's circuit-breaker guarantee).
+    """
+    if action.tool in fuse.config.allowlist:
         return True
     if detection.kind == DetectionKind.DIRECT_REPEAT:
-        return tool in fuse._allow_repeats and bool(fuse._allow_repeats[tool])
+        return fuse._is_allowed_repeat(action)
     if detection.kind == DetectionKind.SEMANTIC_STAGNATION:
         return fuse.config.progress_callback is not None
     return False

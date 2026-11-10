@@ -14,11 +14,11 @@
 </p>
 
 <p align="center">
-  <b>203 tests</b> pass in <b>0.91s</b> on Python 3.9–3.12. The bundled <code>--demo</code> runs in <b>3ms</b> with zero network, zero LLM, and zero optional deps.
+  <b>211 tests</b> pass in <b>0.9s</b> on Python 3.9–3.12. The bundled <code>--demo</code> runs in <b>3ms</b> with zero network, zero LLM, and zero optional deps.
 </p>
 
 <p align="center">
-  <b>0.0% false-positive rate</b> across <b>456 realistic trajectories</b> (polling, pagination, retries, long loops, progress boundaries). The fuse trips every broken trajectory it should and saves <b>1,004 wasted tool calls</b> per benchmark run. See <a href="#efficacy-results">Efficacy results</a>.
+  <b>0.0% false-positive rate</b> across <b>457 realistic trajectories</b> (polling, pagination, retries, long loops, progress boundaries). The fuse trips every broken trajectory it should and saves <b>1,007 wasted tool calls</b> per benchmark run. See <a href="#efficacy-results">Efficacy results</a>.
 </p>
 
 
@@ -458,7 +458,7 @@ with guard_scope(fuse, enter_action="task_start", exit_action="task_end") as f:
 ## Efficacy results
 
 A circuit breaker that misfires on legitimate workloads is worse
-than no circuit breaker. The 0.3 release ships a **456-trajectory**
+than no circuit breaker. The repo ships a **457-trajectory**
 efficacy benchmark (`benchmarks/run_efficacy.py --scaled`) that
 exercises every detector against realistic shapes:
 
@@ -471,8 +471,10 @@ exercises every detector against realistic shapes:
   + 5 succeeding retries).
 * **Broken** trajectories the fuse MUST trip on:
   direct-repeat (6 identical calls), N-cycle (A→B→A→B),
-  semantic stagnation (6 near-identical errors), and stuck-after-recovery
-  (8 identical failures the model tries again to no avail).
+  semantic stagnation (6 near-identical errors), stuck-after-recovery
+  (8 identical failures the model tries again to no avail), and a stuck
+  loop that begins only *after* a `mark_progress` marker has slid out of
+  the sliding window (the slid-out mark must not disarm stagnation).
 * **Edge cases**: tiny retries (2 attempts), at-threshold repeats (3
   identical calls), under-threshold repeats (2), past-threshold (4).
 
@@ -487,27 +489,27 @@ Captured on an Apple M-series machine, Python 3.12, default
 cases:
 
 ```text
-trajectories                 456
-true_positives               203
+trajectories                 457
+true_positives               204
 false_positives              0
 true_negatives               253
 false_negatives              0
 precision                    1.0
 recall                       1.0
 false_positive_rate          0.0
-total_calls_without_fuse     8269
-total_calls_with_fuse        7265
-calls_avoided                1004
+total_calls_without_fuse     8318
+total_calls_with_fuse        7311
+calls_avoided                1007
 avoided_fraction             0.121
 ```
 
 What this means in practice:
 
 * **Every broken trajectory tripped.** The detectors caught all
-  203 broken-shape cases.
+  204 broken-shape cases.
 * **No false positives.** The 253 legitimate trajectories ran to
   completion; the fuse did not abort a single one.
-* **1,004 tool calls saved** per benchmark run, across the broken
+* **1,007 tool calls saved** per benchmark run, across the broken
   scenarios. The fuse tripped at the first opportunity on each,
   avoiding the ~3 extra calls per broken trajectory that an unguarded
   agent would have made before someone (or something) noticed.
@@ -763,7 +765,7 @@ Or to hack on it:
 git clone https://github.com/aniketkarne/trajectory-fuse
 cd trajectory-fuse
 pip install -e .[dev]
-pytest                            # 203 tests
+pytest                            # 211 tests
 python3 -m pytest -q              # same thing, quieter
 python benchmarks/run_efficacy.py --scaled --strict --json   # efficacy numbers
 ```
@@ -800,7 +802,7 @@ A few honest notes on what `trajectory-fuse` is and isn't:
 ## Development
 
 ```bash
-pytest                            # 203 tests
+pytest                            # 211 tests
 pytest --cov=trajectory_fuse            # with coverage (requires pytest-cov)
 python3 benchmarks/run_benchmarks.py
 python3 benchmarks/run_efficacy.py --scaled --strict --json
@@ -836,7 +838,7 @@ Tests cover:
 * exporters (HTML / SVG / Mermaid, escaping, empty trajectories),
 * `FuseStats` (defaults, mutation, `as_dict`, `reset`,
   `record_time_avoided`, `recovery_skips`),
-* efficacy contract (456-trajectory dataset, precision ≥ 0.99,
+* efficacy contract (457-trajectory dataset, precision ≥ 0.99,
   recall ≥ 0.99, FPR ≤ 1%, avoided fraction ≥ 5%).
 
 ## License

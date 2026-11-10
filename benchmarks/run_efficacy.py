@@ -231,6 +231,7 @@ def run_scaled() -> dict:
             "n_cycle": "broken_n_cycle",
             "stagnation": "broken_stagnation",
             "stuck": "broken_stuck_after_recovery",
+            "stuck_mark_evicted": "broken_stagnation",
             "polling": "legitimate_polling",
             "pagination": "legitimate_pagination",
             "retry": "legitimate_retry",

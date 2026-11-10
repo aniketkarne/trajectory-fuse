@@ -64,6 +64,9 @@ jobs:
         run: |
           python benchmarks/run_efficacy.py --scaled --strict --json > /tmp/efficacy.json
           cat /tmp/efficacy.json
+      - name: Efficacy gates (per-family + precision/recall/FPR)
+        run: |
+          python -m pytest -q benchmarks/test_efficacy.py
       - name: Perf benchmark (regression check)
         run: |
           python benchmarks/run_benchmarks.py --strict --json > /tmp/perf.json
