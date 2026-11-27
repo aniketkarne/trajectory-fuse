@@ -16,6 +16,7 @@ from __future__ import annotations
 import html as _html
 from typing import Iterable, List
 
+from . import __version__
 from .types import TrajectoryRecord
 
 
@@ -163,9 +164,13 @@ HTML_TEMPLATE = """<!doctype html>
 def render_html(
     records: Iterable[TrajectoryRecord],
     run_id: str = "",
-    version: str = "0.1.0",
+    version: str = "",
 ) -> str:
-    """Return a self-contained HTML document with an inline SVG timeline."""
+    """Return a self-contained HTML document with an inline SVG timeline.
+
+    ``version`` defaults to the installed package version; pass a value
+    explicitly only when rendering on behalf of a different build.
+    """
     rec_list = list(records)
     svg = _svg_for_records(rec_list)
     rows: List[str] = []
@@ -197,7 +202,7 @@ def render_html(
         suffix="" if len(rec_list) == 1 else "s",
         svg=svg,
         rows="\n".join(rows),
-        version=_html.escape(version),
+        version=_html.escape(version or __version__),
     )
 
 

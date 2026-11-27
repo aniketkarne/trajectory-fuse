@@ -17,10 +17,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Iterable, Iterator, List, Union
+from typing import Any, Iterable, Iterator, List, Union
 
 from .hashing import canonical_hash
-from .types import ProgressSignal, TrajectoryRecord
+from .types import Action, ProgressSignal, TrajectoryRecord
 
 
 def _coerce_bool(value, default=None):
@@ -89,7 +89,7 @@ def normalise_row(raw: dict, default_run_id: str = "", fallback_seq: int = 0) ->
         success = False if raw.get("error") else None
     success = _coerce_bool(success, default=None)
 
-    is_progress = bool(raw.get("is_progress", False))
+    is_progress = bool(_coerce_bool(raw.get("is_progress", False), default=False))
 
     sequence = raw.get("sequence", fallback_seq)
     if not isinstance(sequence, int):
@@ -132,6 +132,56 @@ def normalise_row(raw: dict, default_run_id: str = "", fallback_seq: int = 0) ->
     )
 
 
+_UNSET = object()
+
+
+def _replay_args(rec: TrajectoryRecord) -> Any:
+    """Return an args value for replay that hashes like the recorded args.
+
+    The detectors compare ``canonical_hash(action.args)`` for equality, so
+    replay fidelity requires the reconstructed args to hash identically to
+    the arguments of the original live run:
+
+    * ``args_repr`` parses and matches the recorded ``args_hash`` → use the
+      parsed value (exact: ``canonical_hash`` is key-order-insensitive, so
+      equal args hash equal regardless of how the row spelled them).
+    * ``args_repr`` missing, truncated, or hash-mismatched → use a sentinel
+      keyed on the recorded ``args_hash``. Equality of recorded hashes is
+      preserved (the sentinel is a function of the hash), which is all the
+      direct-repeat and cycle detectors compare. The recomputed hash value
+      will differ from the recorded one — detection outcomes do not.
+    * Nothing recorded at all → the raw ``args_repr`` (all such rows
+      compare equal, matching their shared "unknown args" state).
+    """
+    if rec.args_repr:
+        try:
+            parsed = json.loads(rec.args_repr)
+        except ValueError:
+            parsed = _UNSET
+        if parsed is not _UNSET and (not rec.args_hash or canonical_hash(parsed) == rec.args_hash):
+            return parsed
+    if rec.args_hash:
+        return "sha1:" + rec.args_hash
+    return rec.args_repr or ""
+
+
+def record_to_action(rec: TrajectoryRecord) -> Action:
+    """Convert a loaded/persisted record into an :class:`Action` for replay.
+
+    Use this instead of hand-building ``Action(args=rec.args_repr)``: the
+    detectors hash ``action.args``, and hashing the JSON-encoded repr
+    string diverges from the live run (it is key-order-sensitive and
+    ignores the recorded ``args_hash`` entirely). See :func:`_replay_args`
+    for the reconstruction rules.
+    """
+    return Action(
+        tool=rec.tool,
+        args=_replay_args(rec),
+        result=rec.result_repr,
+        success=rec.success,
+    )
+
+
 def load_jsonl(path: Union[str, Path], default_run_id: str = "") -> List[TrajectoryRecord]:
     """Load a JSONL file and return its records (in file order)."""
     records: List[TrajectoryRecord] = []
@@ -154,11 +204,14 @@ def iter_jsonl(path: Union[str, Path], default_run_id: str = "") -> Iterator[Tra
     """Streaming variant of :func:`load_jsonl`."""
     seq = 0
     with open(str(path), "r", encoding="utf-8") as fh:
-        for line in fh:
+        for line_no, line in enumerate(fh, 1):
             line = line.strip()
             if not line:
                 continue
-            raw = json.loads(line)
+            try:
+                raw = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"invalid JSON on line {line_no}: {exc}") from exc
             seq += 1
             yield normalise_row(raw, default_run_id=default_run_id, fallback_seq=seq)
 
@@ -179,14 +232,8 @@ def replay_against_guard(records: Iterable[TrajectoryRecord], guard) -> List[Tra
             guard.mark_progress(ProgressSignal(token=rec.args_repr or ""))
             out.append(rec)
             continue
-        action = Action(
-            tool=rec.tool,
-            args=rec.args_repr,  # already JSON-encoded
-            result=rec.result_repr,
-            success=rec.success,
-        )
         try:
-            guard.observe(action)
+            guard.observe(record_to_action(rec))
         except DeadlockDetected:
             out.append(rec)
             return out
