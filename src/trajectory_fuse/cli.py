@@ -23,9 +23,9 @@ from .export import render_html, render_mermaid, render_svg
 from .exceptions import DeadlockDetected
 from .guard import AgentFuse, CycleConfig, FuseConfig, StagnationConfig
 from .hashing import canonical_hash
-from .loader import iter_jsonl, load_jsonl, normalise_row
+from .loader import iter_jsonl, load_jsonl, normalise_row, record_to_action
 from .store import TrajectoryStore
-from .types import Action
+from .types import ProgressSignal
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -132,17 +132,11 @@ def _analyse(args) -> int:
     failure = None
     for rec in iter_jsonl(args.input, default_run_id=args.run_id):
         count += 1
-        action = Action(
-            tool=rec.tool,
-            args=rec.args_repr,
-            result=rec.result_repr,
-            success=rec.success,
-        )
         if rec.is_progress:
-            fuse.mark_progress(__import__("trajectory_fuse").types.ProgressSignal(token=rec.args_repr or ""))
+            fuse.mark_progress(ProgressSignal(token=rec.args_repr or ""))
             continue
         try:
-            fuse.observe(action)
+            fuse.observe(record_to_action(rec))
         except DeadlockDetected as exc:
             last_detection = exc
             failure = exc
@@ -236,13 +230,12 @@ def _replay(args) -> int:
     for rec in iter_jsonl(args.input, default_run_id="cli"):
         seen += 1
         if rec.is_progress:
-            fuse.mark_progress(__import__("trajectory_fuse").types.ProgressSignal(token=rec.args_repr or ""))
+            fuse.mark_progress(ProgressSignal(token=rec.args_repr or ""))
             if not args.quiet:
                 print(f"[{seen}] progress: {rec.args_repr}")
             continue
-        action = Action(tool=rec.tool, args=rec.args_repr, result=rec.result_repr, success=rec.success)
         try:
-            fuse.observe(action)
+            fuse.observe(record_to_action(rec))
             if not args.quiet:
                 print(f"[{seen}] ok      {rec.tool} ({rec.args_hash})")
         except DeadlockDetected as exc:
@@ -402,6 +395,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _demo(args)
     except FileNotFoundError as exc:
         print(f"file not found: {exc.filename}", file=sys.stderr)
+        return 2
+    except ValueError as exc:
+        print(f"invalid trajectory: {exc}", file=sys.stderr)
         return 2
     parser.print_help()
     return 2
